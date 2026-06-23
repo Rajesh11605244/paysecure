@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-intake
+  namespace: paysecure-dev
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-intake
+  template:
+    metadata:
+      labels:
+        app: payment-intake
+    spec:
+      containers:
+        - name: payment-intake
+          image: paysecure/payment-intake:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet: { path: /health, port: 3000 }
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: 3000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "200m", memory: "128Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-intake
+  namespace: paysecure-dev
+spec:
+  selector:
+    app: payment-intake
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP
