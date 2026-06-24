@@ -80,3 +80,36 @@ even when deploying to the same cluster it runs on.
 **Fix:** Used the standard internal address `https://kubernetes.default.svc`,
 which always refers to "the cluster ArgoCD is currently running inside."
 *
+
+### Issue: Jenkins Docker socket permission denied (multi-step)
+**Symptom:** `docker: not found`, then after installing the Docker CLI,
+`permission denied while trying to connect to the Docker daemon socket`.
+**What I tried and why it didn't work:**
+- Adding the jenkins user to a matching GID group via `usermod` — worked
+  temporarily but was silently reset on every container restart, because
+  the official jenkins/jenkins image's entrypoint regenerates /etc/passwd
+  and /etc/group on startup.
+- `--group-add` at container creation — registered correctly in
+  `docker inspect` but didn't reliably propagate to `docker exec` sessions.
+**Actual fix:** Ran the Jenkins container with `-u root`, making the whole
+process (and anything docker exec spawns into it) bypass group permission
+checks on the Docker socket entirely. Not a production-safe pattern, but
+correct for a single-user local learning sandbox.
+**Lesson:** When a container's own internal user/group state keeps getting
+reset, stop patching it after the fact — fix it at container-creation time
+instead, or sidestep the permission model entirely if appropriate for the
+context.
+
+### Issue: "fatal: not in a git directory" reading the Jenkinsfile
+**Symptom:** Pipeline failed before any stages ran, in Jenkins' internal
+lightweight-checkout step used just to fetch the Jenkinsfile content.
+**What I tried first:** Deleted the job and recreated it from scratch —
+same error, which ruled out per-job cache corruption.
+**Actual fix:** Job Configure > Pipeline > unchecked "Lightweight checkout".
+This forced a normal full git clone instead of Jenkins' shortcut checkout
+path, which was broken after the container had been recreated multiple
+times during the Docker permission debugging above.
+**Lesson:** When an error happens in a tool's own internal/preliminary
+step rather than your actual pipeline stages, look for a setting that
+changes *how* that internal step works, rather than debugging it as if
+it were your build.
