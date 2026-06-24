@@ -2,13 +2,25 @@ pipeline {
   agent any
   stages {
     stage('Install') {
-      steps { sh 'npm install' }
+      steps {
+        dir('services/payment-intake') {
+          sh 'npm install'
+        }
+      }
     }
     stage('Test') {
-      steps { sh 'node test.js' }
+      steps {
+        dir('services/payment-intake') {
+          sh 'node test.js'
+        }
+      }
     }
     stage('Build image') {
-      steps { sh 'docker build -t paysecure/payment-intake:${BUILD_NUMBER} .' }
+      steps {
+        dir('services/payment-intake') {
+          sh 'docker build -t paysecure/payment-intake:${BUILD_NUMBER} .'
+        }
+      }
     }
     stage('Quality gate') {
       steps {
