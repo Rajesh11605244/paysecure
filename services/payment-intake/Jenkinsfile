@@ -1,0 +1,22 @@
+pipeline {
+  agent any
+  stages {
+    stage('Install') {
+      steps { sh 'npm install' }
+    }
+    stage('Test') {
+      steps { sh 'node test.js' }
+    }
+    stage('Build image') {
+      steps { sh 'docker build -t paysecure/payment-intake:${BUILD_NUMBER} .' }
+    }
+    stage('Quality gate') {
+      steps {
+        echo 'SonarQube scan would run here — see optional stretch goal below'
+      }
+    }
+  }
+  post {
+    failure { echo 'Pipeline failed — in a real setup this blocks the ArgoCD sync' }
+  }
+}
