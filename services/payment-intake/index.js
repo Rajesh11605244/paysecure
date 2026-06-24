@@ -5,6 +5,7 @@ app.use(express.json());
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 app.post('/payments', (req, res) => {
+  throw new Error('simulated production bug');
   const { amount, currency, sender, receiver } = req.body;
   if (!amount || !currency || !sender || !receiver) {
     return res.status(400).json({ error: 'missing required fields' });
